@@ -102,8 +102,16 @@ app.get("/api/catalog", async (req, res) => {
     const catalog = await getCatalogJSON();
     res.json({ catalog });
   } catch(e) {
-    res.status(500).json({ error: "Erro ao carregar catalogo" });
+    res.status(500).json({ error: "Erro ao carregar app.get("/api/debug", async (req, res) => {
+  try {
+    const r = await fetch(SHEET_URL);
+    const csv = await r.text();
+    res.send(`<pre>${csv.substring(0,2000)}</pre>`);
+  } catch(e) {
+    res.send("Erro: " + e.message);
   }
+});
+
 });
 
 app.get("/health", (req, res) => res.json({ ok: true }));
