@@ -23,14 +23,33 @@ async function getCatalog() {
     const lines = csv.trim().split("\n").slice(1);
     let text = "CATÁLOGO MOGI AÇO:\n\n";
     lines.forEach(line => {
-      const c = line.split(",").map(x => x.replace(/^"|"$/g, "").trim());
+      const c = line.split(",").map(x => x.replace(/^"|"$/g,"").trim());
       if (c[0] && c[1]) text += `• ${c[1]} | ${c[2]} | ${c[3]} | ${c[4]} | ${c[5]==="sim"?"Em estoque":"Sob encomenda"}\n`;
     });
     catalogCache = text;
     lastFetch = now;
     return text;
-  } catch (e) {
+  } catch(e) {
     return catalogCache || "Catálogo indisponível.";
+  }
+}
+
+async function getCatalogJSON() {
+  try {
+    const res = await fetch(SHEET_URL);
+    const csv = await res.text();
+    const lines = csv.trim().split("\n").slice(1);
+    const groups = {};
+    lines.forEach(line => {
+      const c = line.split(",").map(x => x.replace(/^"|"$/g,"").trim());
+      const [grupo,nome,especificacao,preco,unidade,estoque] = c;
+      if (!grupo||!nome) return;
+      if (!groups[grupo]) groups[grupo] = [];
+      groups[grupo].push({nome,especificacao,preco,unidade,estoque:estoque==="sim"});
+    });
+    return Object.entries(groups).map(([group,items])=>({group,items}));
+  } catch(e) {
+    return [];
   }
 }
 
@@ -56,8 +75,17 @@ app.post("/api/chat", async (req, res) => {
     });
     const data = await response.json();
     res.json({ reply: data.content[0].text });
-  } catch (e) {
+  } catch(e) {
     res.status(500).json({ error: "Erro interno" });
+  }
+});
+
+app.get("/api/catalog", async (req, res) => {
+  try {
+    const catalog = await getCatalogJSON();
+    res.json({ catalog });
+  } catch(e) {
+    res.status(500).json({ error: "Erro ao carregar catálogo" });
   }
 });
 
