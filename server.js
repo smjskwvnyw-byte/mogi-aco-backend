@@ -21,16 +21,16 @@ async function getCatalog() {
     const res = await fetch(SHEET_URL);
     const csv = await res.text();
     const lines = csv.trim().split("\n").slice(1);
-    let text = "CATÁLOGO MOGI AÇO:\n\n";
+    let text = "CATALOGO MOGI ACO:\n\n";
     lines.forEach(line => {
       const c = line.split(",").map(x => x.replace(/^"|"$/g,"").trim());
-      if (c[0] && c[1]) text += `• ${c[1]} | ${c[2]} | ${c[3]} | ${c[4]} | ${c[5]==="sim"?"Em estoque":"Sob encomenda"}\n`;
+      if (c[0] && c[1]) text += `${c[1]} | ${c[2]} | ${c[3]} | ${c[4]} | ${c[5]==="sim"?"Em estoque":"Sob encomenda"}\n`;
     });
     catalogCache = text;
     lastFetch = now;
     return text;
   } catch(e) {
-    return catalogCache || "Catálogo indisponível.";
+    return catalogCache || "Catalogo indisponivel.";
   }
 }
 
@@ -42,12 +42,23 @@ async function getCatalogJSON() {
     const groups = {};
     lines.forEach(line => {
       const c = line.split(",").map(x => x.replace(/^"|"$/g,"").trim());
-      const [grupo,nome,especificacao,preco,unidade,estoque] = c;
-      if (!grupo||!nome) return;
+      const grupo = c[0];
+      const nome = c[1];
+      const especificacao = c[2];
+      const preco = c[3];
+      const unidade = c[4];
+      const estoque = c[5];
+      if (!grupo || !nome) return;
       if (!groups[grupo]) groups[grupo] = [];
-      groups[grupo].push({nome,especificacao,preco,unidade,estoque:estoque==="sim"});
+      groups[grupo].push({
+        nome,
+        especificacao,
+        preco,
+        unidade,
+        estoque: estoque === "sim"
+      });
     });
-    return Object.entries(groups).map(([group,items])=>({group,items}));
+    return Object.entries(groups).map(([group, items]) => ({ group, items }));
   } catch(e) {
     return [];
   }
@@ -55,10 +66,10 @@ async function getCatalogJSON() {
 
 app.post("/api/chat", async (req, res) => {
   const { messages } = req.body;
-  if (!messages) return res.status(400).json({ error: "Inválido" });
+  if (!messages) return res.status(400).json({ error: "Invalido" });
   try {
     const catalog = await getCatalog();
-    const system = `Você é a Mari, assistente virtual da Mogi Aço em Mogi das Cruzes, SP. Simpática, direta, natural. Nunca usa menus numerados. Máx 2 emojis. Respostas curtas. ${catalog} Regras: use o catálogo para responder preços. Para orçamentos colete produto/medida/quantidade. Diga que equipe confirma. Se pedir pessoa humana, diga que vai transferir. Sempre em português do Brasil.`;
+    const system = `Voce e a Mari, assistente virtual da Mogi Aco em Mogi das Cruzes, SP. Simpatica, direta, natural. Nunca usa menus numerados. Max 2 emojis. Respostas curtas. ${catalog} Regras: use o catalogo para responder precos. Para orcamentos colete produto/medida/quantidade. Diga que equipe confirma. Se pedir pessoa humana, diga que vai transferir. Sempre em portugues do Brasil.`;
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -85,7 +96,7 @@ app.get("/api/catalog", async (req, res) => {
     const catalog = await getCatalogJSON();
     res.json({ catalog });
   } catch(e) {
-    res.status(500).json({ error: "Erro ao carregar catálogo" });
+    res.status(500).json({ error: "Erro ao carregar catalogo" });
   }
 });
 
