@@ -24,7 +24,11 @@ async function getCatalog() {
     let text = "CATALOGO MOGI ACO:\n\n";
     lines.forEach(line => {
       const c = line.split(",").map(x => x.replace(/^"|"$/g,"").trim());
-      if (c[0] && c[1]) text += `${c[1]} | ${c[2]} | ${c[3]} | ${c[4]} | ${c[5]==="sim"?"Em estoque":"Sob encomenda"}\n`;
+      if (c[0] && c[1]) {
+        const prazo = c[6] ? `Prazo: ${c[6]}` : "";
+        const estoque = c[5]==="sim" ? "Em estoque" : "Sob encomenda";
+        text += `${c[1]} | ${c[2]} | ${c[3]} | ${c[4]} | ${estoque} ${prazo}\n`;
+      }
     });
     catalogCache = text;
     lastFetch = now;
@@ -48,6 +52,7 @@ async function getCatalogJSON() {
       const preco = c[3];
       const unidade = c[4];
       const estoque = c[5];
+      const prazo = c[6] || "";
       if (!grupo || !nome) return;
       if (!groups[grupo]) groups[grupo] = [];
       groups[grupo].push({
@@ -55,7 +60,8 @@ async function getCatalogJSON() {
         especificacao,
         preco,
         unidade,
-        estoque: estoque === "sim"
+        estoque: estoque === "sim",
+        prazo
       });
     });
     return Object.entries(groups).map(([group, items]) => ({ group, items }));
@@ -69,7 +75,7 @@ app.post("/api/chat", async (req, res) => {
   if (!messages) return res.status(400).json({ error: "Invalido" });
   try {
     const catalog = await getCatalog();
-    const system = `Voce e a Mari, assistente virtual da Mogi Aco em Mogi das Cruzes, SP. Simpatica, direta, natural. Nunca usa menus numerados. Max 2 emojis. Respostas curtas. ${catalog} Regras: use o catalogo para responder precos. Para orcamentos colete produto/medida/quantidade. Diga que equipe confirma. Se pedir pessoa humana, diga que vai transferir. Sempre em portugues do Brasil.`;
+    const system = `Voce e a Mari, assistente virtual da Mogi Aco em Mogi das Cruzes, SP. Simpatica, direta, natural. Nunca usa menus numerados. Max 2 emojis. Respostas curtas. ${catalog} Regras: use o catalogo para responder precos e prazos. Para orcamentos colete produto/medida/quantidade. Diga que equipe confirma. Se pedir pessoa humana, diga que vai transferir. Sempre em portugues do Brasil.`;
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
